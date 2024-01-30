@@ -1,15 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Peer } from "peerjs";
 export default function Subscriber() {
-  const [peer, setPeer] = useState(new Peer());
+  const [peer, setPeer] = useState(
+    new Peer(
+      undefined
+      //   {
+      //   host: "localhost",
+      //   port: 9000,
+      //   path: "/peerjs",
+      // }
+    )
+  );
   const [myPeerId, setMyPeerId] = useState("");
   const [peerId, setPeerId] = useState("");
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-
+  const videoRef = useRef(null);
   useEffect(() => {
     peer.on("open", (id) => {
       console.log("My peer ID is: " + id);
@@ -31,6 +40,23 @@ export default function Subscriber() {
   const handleConnect = () => {
     console.log("Connect to peer ID:", peerId);
     peer.connect(peerId);
+    var getUserMedia =
+      navigator.getUserMedia ||
+      navigator.webkitGetUserMedia ||
+      navigator.mozGetUserMedia;
+    getUserMedia(
+      { video: true, audio: true },
+      (stream) => {
+        let call = peer.call(peerId, stream);
+        call.on("stream", (remoteStream) => {
+          console.log(remoteStream);
+          videoRef.current.srcObject = remoteStream;
+        });
+      },
+      (err) => {
+        console.log("Failed to get local stream", err);
+      }
+    );
   };
 
   const handleDisconnect = () => {
@@ -67,6 +93,10 @@ export default function Subscriber() {
         />
         <button onClick={handleConnect}>Connect</button>
         <button onClick={handleDisconnect}>Disconnect</button>
+      </div>
+
+      <div>
+        <video ref={videoRef} autoPlay muted playsInline />
       </div>
 
       <div>
